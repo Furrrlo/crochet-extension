@@ -1,0 +1,57 @@
+{
+  "{{chrome}}.manifest_version": 3,
+  "{{firefox}}.manifest_version": 2,
+  "{{firefox}}.browser_specific_settings": {
+    "gecko": {
+      "id": "@joy-chrochet-extension"
+    }
+  },
+  "icons": {
+    "16": "icon/16.png",
+    "32": "icon/32.png",
+    "48": "icon/48.png",
+    "96": "icon/96.png",
+    "128": "icon/128.png"
+  },
+  "{{firefox}}.permissions": [
+    "tabs",
+    "clipboardRead",
+    "storage",
+    "unlimitedStorage",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "webRequest",
+    "webRequestBlocking",
+    "*://*.youtube.com/*",
+    "*://*.youtube-nocookie.com/*"
+  ],
+  "{{chrome}}.permissions": [
+    "tabs",
+    "clipboardRead",
+    "storage",
+    "unlimitedStorage",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback"
+  ],
+  "{{chrome}}.host_permissions": [
+    "*://*.youtube.com/*",
+    "*://*.youtube-nocookie.com/*"
+  ],
+  "options_page": "src/options.html",
+  "background": {
+    "{{chrome}}.service_worker": "src/background.ts",
+    "{{firefox}}.scripts": [
+      "src/background.ts"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.youtube.com/*", "https://*.youtube-nocookie.com/*"],
+      "js": ["src/ytp-content-script.ts"]
+    }
+  ],
+  "{{chrome}}.action": {},
+  "{{firefox}}.browser_action": {
+    "default_area": "navbar"
+  }
+}
