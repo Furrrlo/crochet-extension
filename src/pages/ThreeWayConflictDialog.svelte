@@ -84,8 +84,8 @@
                 currRef.v = v;
                 return [];
             };
-            if (!localVal) return setCurr(inVal);
-            if (!inVal) setCurr(localVal);
+            if (localVal === undefined) return setCurr(inVal);
+            if (inVal === undefined) return setCurr(localVal);
 
             if (Array.isArray(localVal) || Array.isArray(inVal)) {
                 return mergeArray<any, any>(segment, hints, localVal, inVal, currRef);
@@ -269,7 +269,7 @@
             </div>
         </div>
 
-        <div class="p-5 h-100 max-h-dvh flex flex-col animate-in fade-in slide-in-from-right-4 duration-300 space-y-4">
+        <div class="p-5 h-100 max-h-dvh flex flex-col animate-in fade-in slide-in-from-right-4 duration-300 space-y-4 overflow-auto">
             <div class="flex items-center justify-center gap-2">
                 {#if currentIndex !== undefined}
                     {@const currConflict = conflicts[currentIndex]}
@@ -279,7 +279,7 @@
                             incoming: currConflict.incoming,
                         })}
                     {:else}
-                        <div class="badge badge-outline badge-md">Conflict</div>
+                        <div class="badge badge-outline badge-md text-nowrap">Conflict</div>
                         <h2 class="text-xl font-black line-clamp-1 text-ellipsis">
                             "{conflicts[currentIndex].segment}"
                         </h2>
@@ -300,13 +300,15 @@
                     </p>
                     <div class="grid grid-cols-3 gap-4 items-center">
                         <button class="btn {depth === 0 ? 'btn-md' : 'btn-sm'} btn-outline btn-error text-center relative group"
+                                title="{conflict.local}"
                                 onclick="{() => conflict.current = conflict.local}">
                             <span class="text-xs absolute -top-2 left-2 bg-base-100 px-1 text-error">Current</span>
-                            <p class="text-sm font-medium">{conflict.local}</p>
+                            <p class="text-sm font-medium line-clamp-1 text-ellipsis">{conflict.local}</p>
                         </button>
 
                         {#if conflict.hint?.type === "textarea"}
                             <!-- TODO: -->
+                            <div></div>
                         {:else}
                             <input type={conflict.hint?.type ?? 'text'}
                                    bind:value={
@@ -317,9 +319,10 @@
                         {/if}
 
                         <button class="btn {depth === 0 ? 'btn-md' : 'btn-sm'} btn-outline btn-success text-center relative"
+                                title="{conflict.incoming}"
                                 onclick="{() => conflict.current = conflict.incoming}">
                             <span class="text-xs absolute -top-2 right-2 bg-base-100 px-1 text-success">Incoming</span>
-                            <p class="text-sm font-medium">{conflict.incoming}</p>
+                            <p class="text-sm font-medium line-clamp-1 text-ellipsis">{conflict.incoming}</p>
                         </button>
                     </div>
                 {:else}
@@ -331,7 +334,7 @@
                                     incoming: conflict.incoming,
                                 })}
                             {:else}
-                                <div class="badge badge-outline badge-sm">Conflict</div>
+                                <div class="badge badge-outline badge-sm text-nowrap">Conflict</div>
                                 <span class="line-clamp-1 text-ellipsis">"{conflict.segment}"</span>
                             {/if}
                         </div>

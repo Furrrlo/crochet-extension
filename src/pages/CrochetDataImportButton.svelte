@@ -7,16 +7,29 @@
     import {extLocalStore} from "../lib/extLocalStore.svelte";
     import {createDialog} from "../lib/dialog";
     import {VIDEOS_STORE_KEY} from "./Videos.svelte"
+    import AlertToast from "./AlertToast.svelte";
+    import {portal as portal0, type PortalOptions} from "@layerstack/svelte-actions";
+    import type {Action} from "svelte/action";
 
     const props: Omit<HTMLButtonAttributes, 'onclick' | 'on:click' | 'value'> = $props();
     const localVideos = extLocalStore(VIDEOS_STORE_KEY, [] as SavedVideo[]);
+
+    let toast = $state<{
+        text: string;
+        type: "error" | "info" | "warning";
+    }>();
 
     async function onTextImport(txt: string) {
         let incomingVideos: SavedVideo[];
         try {
             incomingVideos = JSON.parse(txt);
+            toast = undefined;
         } catch (e) {
             console.error("Failed to parse imported file", e)
+            toast = {
+                text: "Failed to parse imported file",
+                type: "error",
+            };
             return
         }
 
@@ -53,8 +66,12 @@
                 if (dialog) dialog.showModal();
             },
         }).then((result) => {
-            if (!result)
-                return;
+            if (!result) {
+                return toast = {
+                    text: "Import canceled",
+                    type: "warning",
+                };
+            }
 
             const {merged, local, incoming} = result;
             localVideos.value = merged.map(v => {
@@ -64,20 +81,37 @@
                 return {...v, snippet: localVid?.snippet ?? incomingVid?.snippet};
             });
 
-            console.log("merged", localVideos.value);
+            toast = {
+                text: "Import successful",
+                type: "info",
+            };
         });
     }
+
+    const portal: Action<HTMLElement, PortalOptions> = (node, options) => portal0(node, {
+        ...(typeof options === 'boolean' ? {enabled: options} : options),
+        target: node.closest('dialog') ?? document.body
+    })
 </script>
 
 <ImportButton {...props} onImport={onTextImport}>
     Import
 </ImportButton>
 
+{#if toast}
+    <div use:portal={true}>
+        <AlertToast text={toast.text}
+                    type={toast.type}
+                    timeoutMillis={10000}
+                    onDisappear={() => toast = undefined}/>
+    </div>
+{/if}
+
 {#snippet renderVideoConflictHeader({local, incoming}: {
     local?: SavedVideo,
     incoming?: SavedVideo,
 })}
-    <div class="badge badge-outline badge-md">
+    <div class="badge badge-outline badge-md text-nowrap">
         <FontAwesomeIcon icon="fa-solid fa-video"/>
         Video Conflict
     </div>
@@ -94,7 +128,7 @@
     local?: VideoCrochetPart,
     incoming?: VideoCrochetPart,
 })}
-    <div class="badge badge-outline badge-sm">
+    <div class="badge badge-outline badge-sm text-nowrap">
         <FontAwesomeIcon icon="fa-solid fa-video"/>
         Part Conflict
     </div>
