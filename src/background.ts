@@ -43,10 +43,10 @@ browser.runtime.onMessage.addListener(async (message) => {
     })
 })
 
-function onExtensionResourceRequest({url, respondWith, type, event}: {
+async function onExtensionResourceRequest({url, respondWith, type, event}: {
     url: string,
     type: WebRequest.ResourceType | RequestDestination,
-    respondWith: (url: string, options?: { redirect?: boolean }) => void,
+    respondWith: (url: string, options?: { redirect?: boolean }) => void | Promise<void>,
     event: any,
 }) {
     if (type !== "document"
@@ -57,13 +57,13 @@ function onExtensionResourceRequest({url, respondWith, type, event}: {
         return;
 
     if (url.endsWith("/src/options.html")) {
-        respondWith(browser.runtime.getURL("/settings"), {redirect: true})
+        await respondWith(browser.runtime.getURL("/settings"), {redirect: true})
     } else {
-        respondWith(browser.runtime.getURL("src/index.html"))
+        await respondWith(browser.runtime.getURL("src/index.html"))
     }
 }
 
-addEventListener('fetch', async (event) => onExtensionResourceRequest({
+addEventListener('fetch', (event) => onExtensionResourceRequest({
     event,
     url: event.request.url,
     type: event.request.destination,
@@ -72,14 +72,41 @@ addEventListener('fetch', async (event) => onExtensionResourceRequest({
         : fetch(url))
 }))
 
-if (browser.webRequest)
-    browser.webRequest.onBeforeRequest.addListener((event) => {
+if (browser.webRequest) {
+    const urlFilter = browser.runtime.getURL("");
+    browser.webRequest.onBeforeRequest.addListener(async (event) => {
         let redirectUrl: string | undefined;
-        onExtensionResourceRequest({
+        await onExtensionResourceRequest({
             event,
             url: event.url,
             type: event.type,
-            respondWith: (url) => redirectUrl = url,
+            respondWith: async (url, opts) => {
+                if (opts?.redirect) {
+                    redirectUrl = url;
+                    return;
+                }
+
+                const data = await fetch(url).then(res => res.bytes());
+                const filter = browser.webRequest.filterResponseData(event.requestId);
+                filter.onstart = () => {
+                    filter.write(data);
+                    filter.close();
+                    filter.disconnect();
+                };
+            },
         })
-        return {redirectUrl: redirectUrl};
-    }, {urls: ["<all_urls>"]}, ["blocking"])
+        return {
+            redirectUrl: redirectUrl
+        };
+    }, {urls: [urlFilter]}, ["blocking"]);
+
+    browser.webRequest.onHeadersReceived.addListener((event) => {
+        event.responseHeaders = event.responseHeaders
+            ?.filter(header => header.name.toLowerCase() !== 'content-security-policy')
+        event.responseHeaders?.push({
+            name: "Content-Security-Policy",
+            value: "script-src 'self' http://localhost:*; object-src 'self';",
+        });
+        return {responseHeaders: event.responseHeaders};
+    }, {urls: [urlFilter]}, ["blocking", "responseHeaders"]);
+}
