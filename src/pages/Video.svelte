@@ -8,9 +8,11 @@
     import VideoEmbed from "./VideoEmbed.svelte";
     import {FontAwesomeIcon} from "@fortawesome/svelte-fontawesome";
     import VideoCrochetPartComponent from "./VideoCrochetPart.svelte";
-    import {type HintsWithKey} from "./ThreeWayConflictDialog.svelte";
 
-    let {video = $bindable()}: { video: SavedVideo } = $props()
+    let {video = $bindable(), visible = true}: {
+        video: SavedVideo,
+        visible?: boolean,
+    } = $props()
     useSWR<SavedVideoSnippet>(video.id, {
         fetcher: async () => {
             const snippet = await fetchSavedVideoSnippet(video);
@@ -26,25 +28,42 @@
 
     let editedVideo = $state<SavedVideo>($state.snapshot(video));
     let currentVideo = $derived((canEdit ? editedVideo : video) ?? video)
+
+    const onEditSaveButton = (() => {
+        const beforeUnloadHandler = (event: BeforeUnloadEvent) => {
+            event.preventDefault();
+        };
+
+        $effect(() => {
+            if (!visible) {
+                canEdit = false;
+                window.removeEventListener("beforeunload", beforeUnloadHandler);
+            }
+        });
+
+        return () => {
+            const wasEditing = canEdit
+            canEdit = !canEdit;
+            if (!wasEditing) {
+                window.addEventListener("beforeunload", beforeUnloadHandler);
+                editedVideo = $state.snapshot(video);
+            } else {
+                window.removeEventListener("beforeunload", beforeUnloadHandler);
+                editedVideo.snippet = video.snippet;
+                video = editedVideo;
+            }
+        };
+    })();
 </script>
 
-<div class="flex flex-col justify-center w-full h-dvh box-border p-8 gap-3 overflow-hidden">
+<div class="flex flex-col justify-center w-full h-dvh box-border p-8 gap-3 overflow-hidden {visible ? '' : 'hidden'}">
     <div class="w-full join">
-        <input id="video_name" type="text"
+        <input type="text"
                class="w-full input join-item"
                placeholder="Project name"
                bind:value={currentVideo.name}
                disabled={!canEdit}>
-        <button class="btn btn-accent join-item" onclick="{() => {
-            const wasEditing = canEdit
-            canEdit = !canEdit;
-            if (!wasEditing) {
-                editedVideo = $state.snapshot(video);
-            } else {
-                editedVideo.snippet = video.snippet;
-                video = editedVideo;
-            }
-        }}">
+        <button class="btn btn-accent join-item" onclick="{onEditSaveButton}">
             {#if canEdit}
                 <FontAwesomeIcon icon="fa-regular fa-floppy-disk"/>
             {:else}

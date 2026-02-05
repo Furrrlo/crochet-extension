@@ -88,9 +88,11 @@
             </ul>
 
             <main class="w-dvw h-dvh flex-1 overflow-hidden">
-                {#if selectedVideoIndex >= 0}
-                    <Video bind:video={videos.value[selectedVideoIndex]}/>
-                {/if}
+                {#each videos.value as _, i}
+                    <Video visible={i === selectedVideoIndex}
+                           bind:video={videos.value[i]}
+                    />
+                {/each}
             </main>
         </div>
     {/await}
