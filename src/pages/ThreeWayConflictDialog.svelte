@@ -20,7 +20,6 @@
             : never
     }[keyof T];
 
-    HTMLInputElement
     export type PrimitiveHint = Pick<HTMLInputAttributes,
         "max" | "maxlength" | "min" | "minlength" | "pattern" | "placeholder" | "step"
     > & {
@@ -42,13 +41,6 @@
         hints: HintsWithKey<T>,
         onClose: (res: { merged: T[], local: T[], incoming: T[] }) => void,
     }
-</script>
-
-<script lang="ts" generics="T">
-    import {FontAwesomeIcon} from "@fortawesome/svelte-fontawesome";
-    import {type Snippet} from "svelte";
-
-    let {localValues, incomingValues, hints, onClose}: Props<T> = $props()
 
     type ConflictTree = {
         segment: string,
@@ -70,6 +62,12 @@
             }]>
         };
     })
+</script>
+
+<script lang="ts" generics="T">
+    import {FontAwesomeIcon} from "@fortawesome/svelte-fontawesome";
+
+    let {localValues, incomingValues, hints, onClose}: Props<T> = $props()
 
     let mergedValues = $state<T[] | undefined>();
     const [initMergedValues, conflicts] = $derived.by(() => {
@@ -299,31 +297,11 @@
                         {/if}
                     </p>
                     <div class="grid grid-cols-3 gap-4 items-center">
-                        <button class="btn {depth === 0 ? 'btn-md' : 'btn-sm'} btn-outline btn-error text-center relative group"
-                                title="{conflict.local}"
-                                onclick="{() => conflict.current = conflict.local}">
-                            <span class="text-xs absolute -top-2 left-2 bg-base-100 px-1 text-error">Current</span>
-                            <p class="text-sm font-medium line-clamp-1 text-ellipsis">{conflict.local}</p>
-                        </button>
-
-                        {#if conflict.hint?.type === "textarea"}
-                            <!-- TODO: -->
-                            <div></div>
+                        {#if conflict.hint?.type !== "textarea"}
+                            {@render tripleInput(conflict, depth)}
                         {:else}
-                            <input type={conflict.hint?.type ?? 'text'}
-                                   bind:value={
-                                       () => conflict.current,
-                                       (v) => conflict.current = v}
-                                   class="input {depth === 0 ? 'input-md' : 'input-sm'} input-bordered join-item w-full text-center font-bold focus:input-primary"
-                            />
+                            {@render tripleTextArea(conflict)}
                         {/if}
-
-                        <button class="btn {depth === 0 ? 'btn-md' : 'btn-sm'} btn-outline btn-success text-center relative"
-                                title="{conflict.incoming}"
-                                onclick="{() => conflict.current = conflict.incoming}">
-                            <span class="text-xs absolute -top-2 right-2 bg-base-100 px-1 text-success">Incoming</span>
-                            <p class="text-sm font-medium line-clamp-1 text-ellipsis">{conflict.incoming}</p>
-                        </button>
                     </div>
                 {:else}
                     <div class="p-4 rounded-xl bg-base-200/50 border border-dashed border-base-300 space-y-4">
@@ -379,3 +357,66 @@
         </div>
     </div>
 </dialog>
+
+{#snippet tripleInput(conflict: ConflictTree & { children?: undefined }, depth: number)}
+    <button class="btn {depth === 0 ? 'btn-md' : 'btn-sm'} btn-outline btn-error text-center relative group"
+            title="{conflict.local}"
+            onclick="{() => conflict.current = conflict.local}">
+        <span class="text-xs absolute -top-2 left-2 bg-base-100 px-1 text-error">Current</span>
+        <p class="text-sm font-medium line-clamp-1 text-ellipsis">{conflict.local}</p>
+    </button>
+
+    <input type={conflict.hint?.type ?? 'text'}
+           bind:value={
+                                       () => conflict.current,
+                                       (v) => conflict.current = v}
+           class="input {depth === 0 ? 'input-md' : 'input-sm'} input-bordered join-item w-full text-center font-bold focus:input-primary"
+    />
+
+    <button class="btn {depth === 0 ? 'btn-md' : 'btn-sm'} btn-outline btn-success text-center relative"
+            title="{conflict.incoming}"
+            onclick="{() => conflict.current = conflict.incoming}">
+        <span class="text-xs absolute -top-2 right-2 bg-base-100 px-1 text-success">Incoming</span>
+        <p class="text-sm font-medium line-clamp-1 text-ellipsis">{conflict.incoming}</p>
+    </button>
+{/snippet}
+
+
+{#snippet tripleTextArea(conflict: ConflictTree & { children?: undefined })}
+    {@const syncScroll = (e: Event) => {
+        const target = e.currentTarget as HTMLTextAreaElement;
+        const grid = target.closest('.grid');
+        grid?.querySelectorAll('textarea').forEach(t => {
+            if (t !== target) t.scrollTop = target.scrollTop;
+        });
+    }}
+
+    <div class="relative group h-full">
+        <span class="text-xs absolute -top-2 left-2 bg-base-100 px-1 text-error">Current</span>
+        <textarea
+                readonly
+                class="textarea textarea-bordered border-error/30 text-error w-full h-full resize-y min-h-[100px] cursor-pointer bg-error/5 focus:outline-none"
+                onscroll={syncScroll}
+                onclick={() => conflict.current = conflict.local}
+                value={conflict.local}
+        />
+    </div>
+
+    <textarea
+            class="textarea textarea-primary w-full h-full font-medium resize-y min-h-[100px]"
+            bind:value={() => conflict.current,
+                        (v) => conflict.current = v}
+            onscroll={syncScroll}
+    />
+
+    <div class="relative group h-full">
+        <span class="text-xs absolute -top-2 right-2 bg-base-100 px-1 text-success">Incoming</span>
+        <textarea
+                readonly
+                class="textarea textarea-bordered border-success/30 text-success w-full h-full resize-y min-h-[100px] cursor-pointer bg-success/5 focus:outline-none"
+                onscroll={syncScroll}
+                onclick={() => conflict.current = conflict.incoming}
+                value={conflict.incoming}
+        />
+    </div>
+{/snippet}
