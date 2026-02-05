@@ -332,15 +332,18 @@
         </div>
 
         <div class="bg-base-200 p-4 border-t border-base-300 flex justify-between">
-            <button class="btn btn-ghost gap-2"
-                    disabled={currentIndex === undefined || currentIndex === 0}
-                    onclick={() => { if(currentIndex !== undefined) currentIndex--; }}>
-                <FontAwesomeIcon icon="fa-solid fa-chevron-left"/>
-                Previous
-            </button>
+            <form method="dialog">
+                <button class="btn btn-error">Cancel Import</button>
+            </form>
 
             <div class="flex gap-2">
-                <!--<button class="btn btn-outline">Skip</button>-->
+                <button class="btn btn-ghost gap-2"
+                        disabled={currentIndex === undefined || currentIndex === 0}
+                        onclick={() => { if(currentIndex !== undefined) currentIndex--; }}>
+                    <FontAwesomeIcon icon="fa-solid fa-chevron-left"/>
+                    Previous
+                </button>
+
                 {#if currentIndex !== undefined && currentIndex < conflicts.length - 1}
                     <button class="btn btn-primary gap-2"
                             onclick={() => { if(currentIndex !== undefined) currentIndex++; }}>
@@ -384,7 +387,9 @@
 
 {#snippet tripleTextArea(conflict: ConflictTree & { children?: undefined })}
     {@const syncScroll = (e: Event) => {
-        const target = e.currentTarget as HTMLTextAreaElement;
+        const target = e.currentTarget
+        as
+        HTMLTextAreaElement;
         const grid = target.closest('.grid');
         grid?.querySelectorAll('textarea').forEach(t => {
             if (t !== target) t.scrollTop = target.scrollTop;
