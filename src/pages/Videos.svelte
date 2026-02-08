@@ -11,6 +11,8 @@
     import {searchParams} from 'sv-router';
     import {isActive, p, navigate, route} from '../router';
     import SettingsDialog from "./SettingsDialog.svelte";
+    import {sortable} from "../lib/sortable-action";
+    import {flip} from "svelte/animate";
 
     const videos = extLocalStore(VIDEOS_STORE_KEY, [] as SavedVideo[]);
 
@@ -60,32 +62,48 @@
         </div>
     {:then _}
         <div class="h-dvh w-dvw flex items-center justify-center">
-            <ul class="menu bg-base-200 rounded-box w-64 h-full overflow-auto flex-nowrap">
-                {#each videos.value as video, i}
-                    <li class='{selectedVideoIndex === i ? "menu-active" : ""}'>
-                        <a role="menuitem" tabindex="0" href={p('/', { search: { v: video.id } })}>
-                            <VideoMenuCard bind:video={videos.value[i]}/>
+            <div class="flex flex-col h-dvh w-64 bg-base-200 rounded-box overflow-auto">
+                <ul class="menu w-full pb-0"
+                    use:sortable={{
+                        items: videos.value,
+                        onEnd: (_, items) => videos.value = items,
+                        animation: 300,
+                        handle: true,
+                        ghostClass: 'opacity-20',
+                        chosenClass: 'bg-base-300',
+                        dragClass: 'shadow-2xl',
+                    }}>
+                    {#each videos.value as video, i (video.id)}
+                        <li animate:flip={{duration: 300}}>
+                            <a class="flex {selectedVideoIndex === i ? 'menu-active' : ''}"
+                               role="menuitem"
+                               tabindex="0"
+                               href={p('/', { search: { v: video.id } })}>
+                                <VideoMenuCard bind:video={videos.value[i]}/>
+                            </a>
+                        </li>
+                    {/each}
+                </ul>
+                <ul class="menu w-full grow pt-0 pb-10">
+                    <li>
+                        <a role="menuitem" tabindex="0" class="justify-center"
+                           href={p('/add', { search: { v: selectedVideo?.id ?? '' } })}>
+                            Add
                         </a>
                     </li>
-                {/each}
-                <li>
-                    <a role="menuitem" tabindex="0" class="justify-center"
-                       href={p('/add', { search: { v: selectedVideo?.id ?? '' } })}>
-                        Add
-                    </a>
-                </li>
 
-                <li class="menu-title menu-disabled menu-xs">
-                    <div class="divider m-0"></div>
-                </li>
+                    <li class="menu-title menu-disabled menu-xs">
+                        <div class="divider m-0"></div>
+                    </li>
 
-                <li>
-                    <a role="menuitem" tabindex="0" class="justify-center"
-                       href={p('/settings', { search: { v: selectedVideo?.id ?? '' } })}>
-                        Options
-                    </a>
-                </li>
-            </ul>
+                    <li>
+                        <a role="menuitem" tabindex="0" class="justify-center"
+                           href={p('/settings', { search: { v: selectedVideo?.id ?? '' } })}>
+                            Options
+                        </a>
+                    </li>
+                </ul>
+            </div>
 
             <main class="w-dvw h-dvh flex-1 overflow-hidden">
                 {#each videos.value as _, i}

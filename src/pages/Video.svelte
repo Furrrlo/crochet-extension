@@ -8,6 +8,7 @@
     import VideoEmbed from "./VideoEmbed.svelte";
     import {FontAwesomeIcon} from "@fortawesome/svelte-fontawesome";
     import VideoCrochetPartComponent from "./VideoCrochetPart.svelte";
+    import {sortable, sortableHandle} from "../lib/sortable-action";
 
     let {video = $bindable(), visible = true}: {
         video: SavedVideo,
@@ -91,11 +92,30 @@
             </button>
         </div>
         <div class="flex flex-col flex-1 grow h-0 w-full overflow-x-auto">
-            <div role="tablist" class="tabs tabs-box min-w-max justify-center pl-11">
-                {#each (currentVideo.parts ?? []) as part, i}
-                    <input type="radio" name="instr_tabs" class="tab z-1" aria-label="{part.name}"
-                           checked={i === selectedInstructionsTab}
-                           oninput="{() => selectedInstructionsTab = i}"/>
+            <div role="tablist"
+                 class="tabs tabs-box min-w-max justify-center pl-11"
+                 use:sortable={{
+                    items: currentVideo.parts ?? [],
+                    onEnd: (_, items) => currentVideo.parts = items,
+                    animation: 300,
+                    handle: true,
+                    ghostClass: 'opacity-20',
+                    chosenClass: 'bg-base-300',
+                    dragClass: 'shadow-2xl',
+                 }}>
+                {#each (currentVideo.parts ?? []) as part, i (part.name)}
+                    <a role="tab"
+                       class="tab {i === selectedInstructionsTab ? 'tab-active' : '' }"
+                       onclick={() => selectedInstructionsTab = i}>
+                        {#if canEdit}
+                            <div class="p-1 opacity-50 hover:opacity-100"
+                                 use:sortableHandle
+                                 aria-label="drag-handle for {part.name}">
+                                <FontAwesomeIcon icon="fa-solid fa-grip-vertical"/>
+                            </div>
+                        {/if}
+                        {part.name}
+                    </a>
                 {/each}
             </div>
             <div class="flex flex-col flex-1 grow h-0 mb-1 sticky start-0 overflow-auto">
@@ -107,14 +127,14 @@
                         <VideoCrochetPartComponent bind:part={currentVideo.parts[selectedInstructionsTab]}
                                                    editable={canEdit}
                                                    pipProps={{
-                                              get video() { return video; },
-                                              set video(v) { video = v; },
-                                              partIdx: selectedInstructionsTab,
-                                          }}
+                                                      get video() { return video; },
+                                                      set video(v) { video = v; },
+                                                      partIdx: selectedInstructionsTab,
+                                                  }}
                                                    onRemove={() => {
-                                              if(selectedInstructionsTab)
-                                                currentVideo.parts?.splice(selectedInstructionsTab, 1);
-                                          }}/>
+                                                      if(selectedInstructionsTab)
+                                                        currentVideo.parts?.splice(selectedInstructionsTab, 1);
+                                                  }}/>
                     {/if}
                 </div>
             </div>
