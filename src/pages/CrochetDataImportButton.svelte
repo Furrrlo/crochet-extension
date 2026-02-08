@@ -99,7 +99,7 @@
 </ImportButton>
 
 {#if toast}
-    <div use:portal={true}>
+    <div use:portal={true} class="absolute">
         <AlertToast text={toast.text}
                     type={toast.type}
                     timeoutMillis={10000}
