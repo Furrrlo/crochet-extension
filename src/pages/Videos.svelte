@@ -13,6 +13,7 @@
     import SettingsDialog from "./SettingsDialog.svelte";
     import {sortable} from "../lib/sortable-action";
     import {flip} from "svelte/animate";
+    import {FontAwesomeIcon} from "@fortawesome/svelte-fontawesome";
 
     const videos = extLocalStore(VIDEOS_STORE_KEY, [] as SavedVideo[]);
 
@@ -86,9 +87,10 @@
                 </ul>
                 <ul class="menu w-full grow pt-0 pb-10">
                     <li>
-                        <a role="menuitem" tabindex="0" class="justify-center"
+                        <a role="menuitem" tabindex="0" class="justify-center mt-2 gap-1"
                            href={p('/add', { search: { v: selectedVideo?.id ?? '' } })}>
-                            Add
+                            <FontAwesomeIcon icon="fa-regular fa-square-plus"/>
+                            Add new video
                         </a>
                     </li>
 
@@ -97,8 +99,9 @@
                     </li>
 
                     <li>
-                        <a role="menuitem" tabindex="0" class="justify-center"
+                        <a role="menuitem" tabindex="0" class="justify-center gap-1"
                            href={p('/settings', { search: { v: selectedVideo?.id ?? '' } })}>
+                            <FontAwesomeIcon icon="fa-solid fa-gear"/>
                             Options
                         </a>
                     </li>
