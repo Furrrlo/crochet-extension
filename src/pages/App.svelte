@@ -6,4 +6,4 @@
     initStoreContext();
 </script>
 
-<Router/>
+<Router base="#"/>

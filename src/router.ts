@@ -1,4 +1,10 @@
-import {blockNavigation, createRouter, type Hooks} from 'sv-router';
+import {
+    blockNavigation,
+    type ConstructUrlOptions,
+    createRouter,
+    type Hooks,
+    serializeSearch
+} from 'sv-router';
 import Videos from "./pages/Videos.svelte";
 import NotFound from "./pages/NotFound.svelte";
 
@@ -35,4 +41,16 @@ const router = createRouter({
     hooks: beforeUnloadHook,
 });
 
-export const {p, navigate, isActive, route} = router;
+export const {navigate, isActive, route} = router;
+// Fix p to work with hash-based routing and search params
+export const p: typeof router.p = (path: string, options?: ConstructUrlOptions & {
+    params?: Record<string, string | number | boolean>,
+}): string => {
+    const p = router.p as (p: typeof path, o: typeof options) => string;
+    if (options?.search !== undefined) {
+        let res = p(path, {...options, search: undefined});
+        return serializeSearch(options.search) + res;
+    }
+
+    return p(path, options)
+};
