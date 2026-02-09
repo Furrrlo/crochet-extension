@@ -20,8 +20,6 @@
     "unlimitedStorage",
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
-    "webRequest",
-    "webRequestBlocking",
     "*://*.youtube.com/*",
     "*://*.youtube-nocookie.com/*"
   ],
