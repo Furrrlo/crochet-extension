@@ -1,8 +1,7 @@
 import {
     blockNavigation,
-    type ConstructUrlOptions,
     createRouter,
-    type Hooks,
+    type Hooks, type Path,
     serializeSearch
 } from 'sv-router';
 import Videos from "./pages/Videos.svelte";
@@ -32,25 +31,35 @@ const beforeUnloadHook = ((): Hooks => {
     }
 })()
 
-const router = createRouter({
+const routes = {
     '/': Videos,
     '/add': Videos,
     '/add/:nv': Videos,
     '/settings': Videos,
+    '/video/:video': Videos,
+    '/video/:video/add': Videos,
+    '/video/:video/add/:nv': Videos,
+    '/video/:video/settings': Videos,
     '*': NotFound,
     hooks: beforeUnloadHook,
-});
+};
+const router = createRouter(routes);
+
+export type Routes = typeof routes;
+export type PickRoute<T, Path extends string> = Extract<T, [Path, ...any[]]>;
+export type ExcludeRoute<T, Path extends string> = Exclude<T, [Path, ...any[]]>;
 
 export const {navigate, isActive, route} = router;
+
 // Fix p to work with hash-based routing and search params
-export const p: typeof router.p = (path: string, options?: ConstructUrlOptions & {
-    params?: Record<string, string | number | boolean>,
-}): string => {
-    const p = router.p as (p: typeof path, o: typeof options) => string;
+export function p<U extends Path<Routes>>(...args: Parameters<typeof router.p<U>>): ReturnType<typeof router.p<U>> {
+    const [path, options] = args;
+
+    const p = router.p as (p: typeof path, o: typeof options) => ReturnType<typeof router.p<U>>;
     if (options?.search !== undefined) {
         let res = p(path, {...options, search: undefined});
         return serializeSearch(options.search) + res;
     }
 
     return p(path, options)
-};
+}

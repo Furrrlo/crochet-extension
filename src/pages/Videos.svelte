@@ -8,25 +8,24 @@
     import AddNewVideoDialog from "./AddNewVideoDialog.svelte";
     import VideoMenuCard from "./VideoMenuCard.svelte";
     import Video from "./Video.svelte";
-    import {searchParams} from 'sv-router';
-    import {isActive, p, navigate, route} from '../router';
+    import {isActive, p as p0, navigate as navigate0, route, type ExcludeRoute, type Routes} from '../router';
     import SettingsDialog from "./SettingsDialog.svelte";
     import {sortable} from "../lib/sortable-action";
     import {flip} from "svelte/animate";
     import {FontAwesomeIcon} from "@fortawesome/svelte-fontawesome";
+    import type {Path} from "sv-router";
 
     const videos = extLocalStore(VIDEOS_STORE_KEY, [] as SavedVideo[]);
 
     const selectedVideoIndex = $derived.by(() => {
-        return videos.value.findIndex(v => v.id === searchParams.get('v'));
+        return videos.value.findIndex(v => v.id === route.params.video);
     });
-    const selectedVideo = $derived(selectedVideoIndex !== undefined
-        ? videos.value[selectedVideoIndex]
-        : undefined);
 
-    const isSettingsPage = $derived(isActive('/settings'))
-    const isAddPage = $derived(isActive('/add') || isActive('/add/:nv'))
-    const newVideoUrl = $derived(isActive('/add/:nv') ? route.getParams('/add/:nv').nv : undefined)
+    const isSettingsPage = $derived(isActive('/settings') || isActive('/video/:video/settings'))
+    const isAddPage = $derived(
+        isActive('/add') || isActive('/add/:nv') || isActive('/video/:video/add') || isActive('/video/:video/add/:nv')
+    );
+    const newVideoUrl = $derived(route.params.nv)
 
     let addVideoModal: ReturnType<typeof AddNewVideoDialog>;
     let settingsModal: ReturnType<typeof SettingsDialog>;
@@ -36,12 +35,36 @@
         if (isSettingsPage)
             settingsModal.showModal();
     })
+
+    function p<U extends Path<Routes>>(...args: ExcludeRoute<
+        Parameters<typeof p0<U>>,
+        "/video/:video/add" | "/video/:video/add/:nv" | "/video/:video/settings"
+    >): ReturnType<typeof p0<U>> {
+        const [path, opts] = args;
+        if (route.params.video && (path === "/" || path === "/add" || path === "/settings")) {
+            return (p0 as any)("/video/:video" + path, {...opts, params: {video: route.params.video}});
+        }
+
+        return p0(...args);
+    }
+
+    function navigate<U extends Path<Routes>>(...args: ExcludeRoute<
+        Parameters<typeof navigate0<U>>,
+        "/video/:video/add" | "/video/:video/add/:nv" | "/video/:video/settings"
+    >): ReturnType<typeof navigate0<U>> {
+        const [path, opts] = args;
+        if (route.params.video && (path === "/" || path === "/add" || path === "/settings")) {
+            return (navigate0 as any)("/video/:video" + path, {...opts, params: {video: route.params.video}});
+        }
+
+        return (navigate0 as any)(...args);
+    }
 </script>
 
 <div>
     <AddNewVideoDialog bind:this={addVideoModal}
                        initialUrl={newVideoUrl}
-                       onClose={() => navigate('/', { search: { v: selectedVideo?.id ?? '' } })}
+                       onClose={() => navigate('/')}
                        onAdd={(video) => {
         const matches = videos.value.filter(v => v.id === video.id);
         if(matches.length !== 0) {
@@ -50,12 +73,11 @@
         }
 
         videos.value.push(video);
-        navigate('/', { search: { v: video.id } })
+        navigate('/video/:video', { params: { video: video.id }})
         return null;
     }}/>
 
-    <SettingsDialog bind:this={settingsModal}
-                    onClose={() => navigate('/', { search: { v: selectedVideo?.id ?? '' } })}/>
+    <SettingsDialog bind:this={settingsModal} onClose={() => navigate('/')}/>
 
     {#await videos.loaded}
         <div class="h-dvh w-dvw flex items-center justify-center">
@@ -79,7 +101,7 @@
                             <a class="flex {selectedVideoIndex === i ? 'menu-active' : ''}"
                                role="menuitem"
                                tabindex="0"
-                               href={p('/', { search: { v: video.id } })}>
+                               href={p('/video/:video', { params: { video: video.id }})}>
                                 <VideoMenuCard bind:video={videos.value[i]}/>
                             </a>
                         </li>
@@ -87,8 +109,7 @@
                 </ul>
                 <ul class="menu w-full grow pt-0 pb-10">
                     <li>
-                        <a role="menuitem" tabindex="0" class="justify-center mt-2 gap-1"
-                           href={p('/add', { search: { v: selectedVideo?.id ?? '' } })}>
+                        <a role="menuitem" tabindex="0" class="justify-center mt-2 gap-1" href={p('/add')}>
                             <FontAwesomeIcon icon="fa-regular fa-square-plus"/>
                             Add new video
                         </a>
@@ -99,8 +120,7 @@
                     </li>
 
                     <li>
-                        <a role="menuitem" tabindex="0" class="justify-center gap-1"
-                           href={p('/settings', { search: { v: selectedVideo?.id ?? '' } })}>
+                        <a role="menuitem" tabindex="0" class="justify-center gap-1" href={p('/settings')}>
                             <FontAwesomeIcon icon="fa-solid fa-gear"/>
                             Options
                         </a>
